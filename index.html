@@ -65,16 +65,16 @@
         /* Стрелка-указатель */
         .arrow {
             position: absolute;
-            top: -20px;
+            top: -25px;
             left: 50%;
             transform: translateX(-50%);
             width: 0; 
             height: 0; 
             border-left: 20px solid transparent;
             border-right: 20px solid transparent;
-            border-top: 30px solid #fff;
+            border-top: 40px solid #fff; /* Чуть длиннее и заметнее */
             z-index: 10;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
         }
 
         /* Само колесо */
@@ -82,36 +82,62 @@
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            border: 5px solid white;
-            background: conic-gradient(
-                #ff6b6b 0deg 45deg,
-                #f06595 45deg 90deg,
-                #cc5de8 90deg 135deg,
-                #845ef7 135deg 180deg,
-                #5c7cfa 180deg 225deg,
-                #339af0 225deg 270deg,
-                #22b8cf 270deg 315deg,
-                #20c997 315deg 360deg
+            border: 8px solid white; /* Более толстая и солидная рамка */
+            
+            /* Добавляем объем: тень внутри и свечение снаружи */
+            box-shadow: 
+                0 0 0 4px rgba(255, 255, 255, 0.3), /* Внешнее полупрозрачное кольцо */
+                0 0 20px rgba(0,0,0,0.3), 
+                inset 0 0 40px rgba(0,0,0,0.2); /* Внутренняя тень для глубины */
+            
+            /* Градиент в романтических тонах + радиальный градиент для объема */
+            background: 
+                radial-gradient(circle, transparent 50%, rgba(0,0,0,0.15) 100%), /* Виньетка по краям */
+                conic-gradient(
+                    #ff758c 0deg 45deg,
+                    #ff7eb3 45deg 90deg,
+                    #ffa585 90deg 135deg,
+                    #ff7eb3 135deg 180deg,
+                    #ff758c 180deg 225deg,
+                    #ff7eb3 225deg 270deg,
+                    #ffa585 270deg 315deg,
+                    #ff7eb3 315deg 360deg
             );
             transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); /* Плавное замедление */
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
+        }
+
+        /* Блик (стеклянный эффект) поверх колеса */
+        .wheel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%);
+            pointer-events: none;
         }
 
         /* Центр колеса (декор) */
         .wheel::after {
             content: "❤️";
-            font-size: 40px;
+            font-size: 35px;
             display: flex;
             justify-content: center;
             align-items: center;
             position: absolute;
-            width: 80px;
-            height: 80px;
-            background: white;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #ffdee9); /* Объемная кнопка */
             border-radius: 50%;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border: 4px solid white;
+            z-index: 2;
         }
 
         .spin-btn {
@@ -182,6 +208,9 @@
             bg.appendChild(el);
         }
 
+        // Звук вращения (тиканье)
+        let tickSound = new Audio('tick.mp3');
+
         let isSpinning = false;
 
         function spinRoulette() {
@@ -197,6 +226,19 @@
             // Вибрация
             tg.HapticFeedback.impactOccurred('medium');
 
+            // Запускаем звук с плавным нарастанием
+            tickSound.loop = true; 
+            tickSound.currentTime = 0;
+            tickSound.volume = 0; // Начинаем с тишины
+            
+            // Fade In (плавное появление до 30% громкости)
+            let fadeIn = setInterval(() => {
+                if (tickSound.volume < 0.3) tickSound.volume = Math.min(tickSound.volume + 0.05, 0.3);
+                else clearInterval(fadeIn);
+            }, 100);
+            
+            tickSound.play().catch(e => console.log("Ошибка воспроизведения звука:", e));
+
             // Вычисляем случайный угол вращения (минимум 5 оборотов + случайный сектор)
             // 360 * 5 = 1800 градусов минимум
             const randomDeg = 1800 + Math.floor(Math.random() * 360);
@@ -204,8 +246,18 @@
             // Запускаем вращение через CSS
             wheel.style.transform = `rotate(${randomDeg}deg)`;
 
+            // Fade Out (плавное затухание, когда колесо замедляется)
+            setTimeout(() => {
+                let fadeOut = setInterval(() => {
+                    if (tickSound.volume > 0.05) tickSound.volume -= 0.05;
+                    else { tickSound.volume = 0; clearInterval(fadeOut); tickSound.pause(); }
+                }, 100);
+            }, 2500); // Начинаем затухать через 2.5 секунды
+
             // Ждем окончания анимации (4 секунды, как в CSS transition)
             setTimeout(() => {
+                if (!tickSound.paused) tickSound.pause(); // Страховка
+
                 // Вибрация успеха
                 tg.HapticFeedback.notificationOccurred('success');
                 
