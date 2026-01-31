@@ -6,11 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Рулетка Любви</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -19,14 +20,42 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: white;
             overflow: hidden;
+            position: relative;
+        }
+
+        /* Плавающий фон */
+        .bg-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .heart {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 20px;
+            animation: floatUp linear infinite;
+            bottom: -50px;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.5; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
         }
 
         /* Контейнер для колеса */
         .wheel-container {
             position: relative;
-            width: 300px;
-            height: 300px;
+            width: 320px;
+            height: 320px;
             margin-bottom: 40px;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
         }
 
         /* Стрелка-указатель */
@@ -41,7 +70,7 @@
             border-right: 20px solid transparent;
             border-top: 30px solid #fff;
             z-index: 10;
-            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
 
         /* Само колесо */
@@ -50,7 +79,6 @@
             height: 100%;
             border-radius: 50%;
             border: 5px solid white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
             background: conic-gradient(
                 #ff6b6b 0deg 45deg,
                 #f06595 45deg 90deg,
@@ -79,7 +107,7 @@
             height: 80px;
             background: white;
             border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
         }
 
         .spin-btn {
@@ -91,7 +119,7 @@
             font-size: 22px;
             font-weight: 900;
             cursor: pointer;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
             transition: transform 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -108,11 +136,15 @@
 
         h1 {
             margin-top: 0;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 28px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
+
+    <div class="bg-animation" id="bgAnimation"></div>
 
     <h1>Испытай удачу!</h1>
 
@@ -128,6 +160,21 @@
         let tg = window.Telegram.WebApp;
         tg.ready(); // Сообщаем Telegram, что приложение готово (важно для ПК!)
         tg.expand(); // Раскрываем на весь экран
+
+        // Генерация плавающих сердечек
+        const bg = document.getElementById('bgAnimation');
+        const symbols = ['❤️', '✨', '💖', '🌸', '🎀'];
+        
+        for (let i = 0; i < 20; i++) {
+            let el = document.createElement('div');
+            el.classList.add('heart');
+            el.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+            el.style.left = Math.random() * 100 + '%';
+            el.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            el.style.animationDelay = Math.random() * 5 + 's';
+            el.style.fontSize = (Math.random() * 20 + 10) + 'px';
+            bg.appendChild(el);
+        }
 
         let isSpinning = false;
 
@@ -156,8 +203,18 @@
                 // Вибрация успеха
                 tg.HapticFeedback.notificationOccurred('success');
                 
+                // Конфетти!
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#ffffff', '#ff6b6b', '#f06595']
+                });
+                
                 // Отправляем боту сигнал, что колесо остановилось
-                tg.sendData("spin_complete");
+                setTimeout(() => {
+                    tg.sendData("spin_complete");
+                }, 1000); // Даем секунду полюбоваться конфетти
                 
                 // Закрываем окно (опционально, но лучше оставить открытым, чтобы бот сам закрыл или пользователь)
                 // tg.close(); 
